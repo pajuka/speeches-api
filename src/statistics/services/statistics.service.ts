@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, StreamableFile } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, StreamableFile } from '@nestjs/common';
 import { AxiosResponse } from 'axios';
 import { firstValueFrom, from, groupBy } from 'rxjs';
 import { InputModel } from '../models/input.model';
@@ -105,38 +105,75 @@ export class StatisticsService {
         }
 
         // Get name of the politican with most speeches in the specified year
-        // Group all items by year
-        const yearGrouped = _.groupBy(inputData, (item: InputModel) => item.Date.getFullYear());
         // Get all items of the year to check
-        const allItemsOfYearToCheck = yearGrouped[this.yearToCheckForMostSpeeches];
+        const allItemsOfYearToCheck = inputData.filter(item => item.Date.getFullYear() === this.yearToCheckForMostSpeeches);
         // Count in that items all by speaker
-        const speakerGroupedInYearToCheck = _.countBy(allItemsOfYearToCheck, (item: InputModel) => item.Speaker);
-        // Get the speaker with the most speeches
-        statistic.mostSpeeches = _.maxBy(Object.keys(speakerGroupedInYearToCheck), key => speakerGroupedInYearToCheck[key]);
+        const speakerGroupedInYearToCheck: { [key: string]: number } = _.countBy(allItemsOfYearToCheck, (item: InputModel) => item.Speaker);
+        // Check if there are multiple speakers with the same max-count of speeches
+        if (this.checkIfMaxValueIsUnique(Object.values(speakerGroupedInYearToCheck))) {
+            // Get the speaker with the most speeches
+            statistic.mostSpeeches = _.maxBy(Object.keys(speakerGroupedInYearToCheck), key => speakerGroupedInYearToCheck[key]);
+        }
 
         // console.debug("🚀 - StatisticsService - generateStatistics - speakerGroupedInYearToCheck", speakerGroupedInYearToCheck);
 
         // Get name of the politican with most speeches on the specified topic
-        // Group all items by topic
-        const topicGrouped = _.groupBy(inputData, (item: InputModel) => item.Topic);
         // Get all items of the topic to check
-        const allItemsOfTopicToCheck = topicGrouped[this.topicToCount];
+        const allItemsOfTopicToCheck = inputData.filter(item => item.Topic === this.topicToCount);
         // Count in that items all by speaker
-        const speakerGroupedOnTopicToCheck = _.countBy(allItemsOfTopicToCheck, (item: InputModel) => item.Speaker);
-        // Get the speaker with the most speeches in that topic
-        statistic.mostSecurity = _.maxBy(Object.keys(speakerGroupedOnTopicToCheck), key => speakerGroupedOnTopicToCheck[key]);
+        const speakerGroupedOnTopicToCheck: { [key: string]: number } = _.countBy(allItemsOfTopicToCheck, (item: InputModel) => item.Speaker);
+        // Check if there are multiple speakers with the same max-count of speeches
+        if (this.checkIfMaxValueIsUnique(Object.values(speakerGroupedOnTopicToCheck))) {
+            // Get the speaker with the most speeches in that topic
+            statistic.mostSecurity = _.maxBy(Object.keys(speakerGroupedOnTopicToCheck), key => speakerGroupedOnTopicToCheck[key]);
+        }
 
         // console.debug("🚀 - StatisticsService - generateStatistics - speakerGroupedOnTopicToCheck", speakerGroupedOnTopicToCheck);
 
         // Get name of the politican with the fewest words
         // Group all items by speaker
-        const speakerGrouped = _.groupBy(inputData, (item: InputModel) => item.Speaker);
+        const speakerGrouped: { [key: string]: InputModel[] } = _.groupBy(inputData, (item: InputModel) => item.Speaker);
         // In the result (key=politican, value=all items of politican), sum up the words for one politican
-        // and get the one with the fewest
-        statistic.leastWordy = _.minBy(Object.keys(speakerGrouped), key => _.sumBy(speakerGrouped[key], (item: InputModel) => item.Words));
+        const speakerWithTotalWordCounts: { [key: string]: number } = this.getSpeakerWithTotalWordCounts(speakerGrouped);
+        // Check if there are multiple speakers with the same min-sum of words
+        if (this.checkIfMinValueIsUnique(Object.values(speakerWithTotalWordCounts))) {
+            // Get the one with the fewest
+            statistic.leastWordy = _.minBy(Object.keys(speakerWithTotalWordCounts), key => speakerWithTotalWordCounts[key]);
+        }
 
         // console.debug("🚀 - StatisticsService - generateStatistics - speakerGrouped", speakerGrouped);
 
         return statistic;
+    }
+
+    private checkIfMaxValueIsUnique(values: number[]): boolean {
+        if (!values || values.length <= 0) {
+            return true;
+        }
+
+        const maxValue = _.max(values);
+        const foundMaxItems = values.filter(item => item === maxValue);
+
+        return foundMaxItems?.length === 1;
+    }
+
+    private checkIfMinValueIsUnique(values: number[]): boolean {
+        if (!values || values.length <= 0) {
+            return true;
+        }
+
+        const minValue = _.min(values);
+        const foundMaxItems = values.filter(item => item === minValue);
+
+        return foundMaxItems?.length === 1;
+    }
+
+    private getSpeakerWithTotalWordCounts(speakerGrouped: { [key: string]: InputModel[] }): { [key: string]: number } {
+        const speakerWithTotalWordCounts: { [key: string]: number } = {};
+        Object.keys(speakerGrouped).forEach(key => {
+            Object.assign(speakerWithTotalWordCounts, { [key]: _.sumBy(speakerGrouped[key], (item: InputModel) => item.Words) });
+        });
+
+        return speakerWithTotalWordCounts;
     }
 }
