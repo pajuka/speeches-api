@@ -1,12 +1,9 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { url } from 'inspector';
+import { Controller, Get, Query } from '@nestjs/common';
 import { StatisticsModel } from '../models/statistics.model';
 import { StatisticsService } from '../services/statistics.service';
 
 @Controller('statistics')
 export class StatisticsController {
-    private readonly UrlQueryParamPrefix = 'url';
-
     constructor(private statisticsService: StatisticsService) { }
 
     @Get('evaluation')

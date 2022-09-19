@@ -1,11 +1,11 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, InternalServerErrorException, StreamableFile } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AxiosResponse } from 'axios';
-import { firstValueFrom, from, groupBy } from 'rxjs';
+import * as _ from 'lodash';
+import * as Papa from 'papaparse';
+import { firstValueFrom } from 'rxjs';
 import { InputModel } from '../models/input.model';
 import { StatisticsModel } from '../models/statistics.model';
-import * as Papa from 'papaparse';
-import * as _ from 'lodash';
 
 @Injectable()
 export class StatisticsService {
@@ -46,7 +46,7 @@ export class StatisticsService {
             overallInputData.push(...result);
         }
 
-        // console.debug("🚀 - StatisticsService - getEvaluation - overallInputData", overallInputData);
+        console.debug("🚀 - StatisticsService - getEvaluation - overallInputData", overallInputData);
 
         return this.generateStatistics(overallInputData);
     }
@@ -64,7 +64,7 @@ export class StatisticsService {
                 return;
             }
 
-            // console.debug("🚀 - StatisticsService - downloadFile - response.data", response.data);
+            console.debug("🚀 - StatisticsService - downloadFile - response.data", response.data);
 
             return response.data;
         } catch (error) {
@@ -115,7 +115,7 @@ export class StatisticsService {
             statistic.mostSpeeches = _.maxBy(Object.keys(speakerGroupedInYearToCheck), key => speakerGroupedInYearToCheck[key]);
         }
 
-        // console.debug("🚀 - StatisticsService - generateStatistics - speakerGroupedInYearToCheck", speakerGroupedInYearToCheck);
+        console.debug("🚀 - StatisticsService - generateStatistics - speakerGroupedInYearToCheck", speakerGroupedInYearToCheck);
 
         // Get name of the politican with most speeches on the specified topic
         // Get all items of the topic to check
@@ -128,7 +128,7 @@ export class StatisticsService {
             statistic.mostSecurity = _.maxBy(Object.keys(speakerGroupedOnTopicToCheck), key => speakerGroupedOnTopicToCheck[key]);
         }
 
-        // console.debug("🚀 - StatisticsService - generateStatistics - speakerGroupedOnTopicToCheck", speakerGroupedOnTopicToCheck);
+        console.debug("🚀 - StatisticsService - generateStatistics - speakerGroupedOnTopicToCheck", speakerGroupedOnTopicToCheck);
 
         // Get name of the politican with the fewest words
         // Group all items by speaker
@@ -141,7 +141,7 @@ export class StatisticsService {
             statistic.leastWordy = _.minBy(Object.keys(speakerWithTotalWordCounts), key => speakerWithTotalWordCounts[key]);
         }
 
-        // console.debug("🚀 - StatisticsService - generateStatistics - speakerGrouped", speakerGrouped);
+        console.debug("🚀 - StatisticsService - generateStatistics - speakerWithTotalWordCounts", speakerWithTotalWordCounts);
 
         return statistic;
     }
